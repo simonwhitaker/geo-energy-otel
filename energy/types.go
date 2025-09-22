@@ -7,12 +7,12 @@ type CommodityType string
 
 const (
 	GAS         CommodityType = "gas"
-	ELECTRICITY               = "electricity"
+	ELECTRICITY CommodityType = "electricity"
 )
 
 const (
 	LIVE  ReadingType = "live"
-	METER             = "meter"
+	METER ReadingType = "meter"
 )
 
 type Reading struct {

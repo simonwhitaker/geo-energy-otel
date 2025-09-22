@@ -1,6 +1,7 @@
 package energy
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -23,7 +24,7 @@ func NewDatadogWriter(hostname string, logger *log.Logger) DatadogWriter {
 	configuration := datadog.NewConfiguration()
 	apiClient := datadog.NewAPIClient(configuration)
 	metricsApi := datadogV2.NewMetricsApi(apiClient)
-	
+
 	return DatadogWriter{
 		hostname:   hostname,
 		logger:     logger,
@@ -33,7 +34,7 @@ func NewDatadogWriter(hostname string, logger *log.Logger) DatadogWriter {
 }
 
 func (w DatadogWriter) WriteReadings(readings []Reading) error {
-	ctx := datadog.NewDefaultContext(nil)
+	ctx := datadog.NewDefaultContext(context.Background())
 
 	allSeries := []datadogV2.MetricSeries{}
 	for _, el := range readings {
