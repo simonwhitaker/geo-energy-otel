@@ -17,14 +17,14 @@ const (
 	PERIODIC
 )
 
-func getMeterData(logger *log.Logger, reader energy.EnergyDataReader, writers []energy.EnergyDataWriter, mode ReadingMode) {
+func getMeterData(logger *log.Logger, reader energy.EnergyDataReader, writers []energy.EnergyDataWriter, mode ReadingMode) error {
 	allReadings := []energy.Reading{}
 
 	if mode&PERIODIC != 0 {
 		// Get periodic meter data
 		readings, err := reader.GetMeterReadings()
 		if err != nil {
-			logger.Fatal(err)
+			return err
 		}
 		allReadings = append(allReadings, readings...)
 	}
@@ -32,7 +32,7 @@ func getMeterData(logger *log.Logger, reader energy.EnergyDataReader, writers []
 		// Get live meter data
 		readings, err := reader.GetLiveReadings()
 		if err != nil {
-			logger.Fatal(err)
+			return err
 		}
 
 		allReadings = append(allReadings, readings...)
@@ -41,7 +41,31 @@ func getMeterData(logger *log.Logger, reader energy.EnergyDataReader, writers []
 	for _, w := range writers {
 		err := w.WriteReadings(allReadings)
 		if err != nil {
-			logger.Fatal(err)
+			return err
+		}
+	}
+	return nil
+}
+
+// waitForConnection retries getMeterData with exponential backoff until it succeeds
+func waitForConnection(logger *log.Logger, reader energy.EnergyDataReader, writers []energy.EnergyDataWriter) {
+	backoff := time.Second * 5
+	maxBackoff := time.Minute * 2
+
+	for {
+		err := getMeterData(logger, reader, writers, LIVE|PERIODIC)
+		if err == nil {
+			logger.Println("Connected successfully")
+			return
+		}
+
+		logger.Printf("Connection failed: %v (retrying in %v)", err, backoff)
+		time.Sleep(backoff)
+
+		// Exponential backoff with cap
+		backoff *= 2
+		if backoff > maxBackoff {
+			backoff = maxBackoff
 		}
 	}
 }
@@ -66,17 +90,23 @@ func main() {
 		logger.Println("Skipping Datadog; DD_API_KEY not set")
 	}
 
+	// Wait for initial connection with retry
+	waitForConnection(logger, reader, writers)
+
 	tickLive := time.NewTicker(time.Second * time.Duration(10))
 	tickPeriodic := time.NewTicker(time.Second * time.Duration(300))
 
-	getMeterData(logger, reader, writers, LIVE|PERIODIC)
 	go func() {
 		for {
 			select {
 			case <-tickLive.C:
-				getMeterData(logger, reader, writers, LIVE)
+				if err := getMeterData(logger, reader, writers, LIVE); err != nil {
+					logger.Printf("Error getting live data: %v", err)
+				}
 			case <-tickPeriodic.C:
-				getMeterData(logger, reader, writers, PERIODIC)
+				if err := getMeterData(logger, reader, writers, PERIODIC); err != nil {
+					logger.Printf("Error getting periodic data: %v", err)
+				}
 			}
 		}
 	}()
