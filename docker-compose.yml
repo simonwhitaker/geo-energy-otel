@@ -3,11 +3,10 @@ services:
     build:
       context: .
     environment:
-      - DD_SITE
-      - DD_HOSTNAME
       - GEO_USERNAME
       - GEO_PASSWORD
-      - DD_API_KEY
+      - OTEL_EXPORTER_OTLP_ENDPOINT
+      - OTEL_HOSTNAME
     restart: unless-stopped
     deploy:
       resources:

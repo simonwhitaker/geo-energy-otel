@@ -20,3 +20,7 @@ func (w LoggerWriter) WriteReadings(r []Reading) error {
 	}
 	return nil
 }
+
+func (w LoggerWriter) Close() error {
+	return nil
+}

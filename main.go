@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"os/signal"
@@ -83,11 +84,15 @@ func main() {
 		energy.NewLoggerWriter(logger),
 	}
 
-	if _, ok := os.LookupEnv("DD_API_KEY"); ok {
-		datadogHostname := getEnvOrDefault("DD_HOSTNAME", "localhost")
-		writers = append(writers, energy.NewDatadogWriter(datadogHostname, logger))
+	if _, ok := os.LookupEnv("OTEL_EXPORTER_OTLP_ENDPOINT"); ok {
+		otelHostname := getEnvOrDefault("OTEL_HOSTNAME", "localhost")
+		otelWriter, err := energy.NewOTelWriter(context.Background(), otelHostname, logger)
+		if err != nil {
+			logger.Fatalf("Failed to initialize OTel writer: %v", err)
+		}
+		writers = append(writers, otelWriter)
 	} else {
-		logger.Println("Skipping Datadog; DD_API_KEY not set")
+		logger.Println("Skipping OTel; OTEL_EXPORTER_OTLP_ENDPOINT not set")
 	}
 
 	// Wait for initial connection with retry
@@ -115,4 +120,11 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	<-sigs
+
+	logger.Println("Shutting down...")
+	for _, w := range writers {
+		if err := w.Close(); err != nil {
+			logger.Printf("Error closing writer: %v", err)
+		}
+	}
 }
