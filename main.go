@@ -17,7 +17,7 @@ const (
 	PERIODIC
 )
 
-func getMeterData(logger *log.Logger, reader energy.EnergyDataReader, writers []energy.EnergyDataWriter, mode ReadingMode) error {
+func getMeterData(reader energy.EnergyDataReader, writers []energy.EnergyDataWriter, mode ReadingMode) error {
 	allReadings := []energy.Reading{}
 
 	if mode&PERIODIC != 0 {
@@ -53,7 +53,7 @@ func waitForConnection(logger *log.Logger, reader energy.EnergyDataReader, write
 	maxBackoff := time.Minute * 2
 
 	for {
-		err := getMeterData(logger, reader, writers, LIVE|PERIODIC)
+		err := getMeterData(reader, writers, LIVE|PERIODIC)
 		if err == nil {
 			logger.Println("Connected successfully")
 			return
@@ -100,11 +100,11 @@ func main() {
 		for {
 			select {
 			case <-tickLive.C:
-				if err := getMeterData(logger, reader, writers, LIVE); err != nil {
+				if err := getMeterData(reader, writers, LIVE); err != nil {
 					logger.Printf("Error getting live data: %v", err)
 				}
 			case <-tickPeriodic.C:
-				if err := getMeterData(logger, reader, writers, PERIODIC); err != nil {
+				if err := getMeterData(reader, writers, PERIODIC); err != nil {
 					logger.Printf("Error getting periodic data: %v", err)
 				}
 			}
