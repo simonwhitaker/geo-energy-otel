@@ -1,0 +1,24 @@
+services:
+  app:
+    extends:
+      file: docker-compose.yml
+      service: app
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://hyperdx:4317
+    depends_on:
+      - hyperdx
+
+  hyperdx:
+    image: hyperdx/hyperdx-local:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - hyperdx_data:/data/db
+      - hyperdx_clickhouse_data:/var/lib/clickhouse
+    labels:
+      # See https://docs.orbstack.dev/docker/domains#override-port
+      dev.orbstack.http-port: 8080
+
+volumes:
+  hyperdx_data:
+  hyperdx_clickhouse_data:
