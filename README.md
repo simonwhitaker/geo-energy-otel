@@ -21,4 +21,8 @@ Export the environment variables as above (e.g. by adding a `.env` file), then:
 docker compose up
 ```
 
-A `docker-compose-hyperdx.yml` file is included for running [HyperDX](https://www.hyperdx.io/) locally as an OTLP backend for testing.
+A `docker-compose-hyperdx.yml` file is included for running [HyperDX](https://www.hyperdx.io/) locally as an OTLP backend for testing:
+
+```sh
+docker compose -f docker-compose-hyperdx.yml up
+```
